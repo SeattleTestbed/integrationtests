@@ -145,7 +145,7 @@ def test_server(server_url):
     assert(expected_result['postal_code'] == location_dict['postal_code'])
 
     # Test geoip_location_str method
-    assert(geoip_location_str(location_dict) == "Brooklyn, NY, United States")
+    assert(geoip_location_str(location_dict) == "Brooklyn, United States")
   
     # Test geoip_record_by_name method by verifying location info of
     # 128.208.3.200 (cs.washington.edu)
@@ -160,7 +160,7 @@ def test_server(server_url):
 
 
     # Test geoip_location_str method
-    assert(geoip_location_str(location_dict) == "Seattle, WA, United States")
+    assert(geoip_location_str(location_dict) == "Seattle, United States")
 
     return (True, None, None)
   except AssertionError, err:
