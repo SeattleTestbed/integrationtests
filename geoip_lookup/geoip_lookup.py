@@ -136,12 +136,12 @@ def test_server(server_url):
   try:
     # Test geoip_record_by_name method by verifying location info of google.com
     location_dict = geoip_record_by_name('poly.edu')
-    expected_result = {'area_code': 718, 'city': 'Brooklyn', 'country_code': 'US', 'country_code3': 'USA', 'country_name': 'United States', 'dma_code': 501, 'latitude': 40.694400000000002, 'longitude': -73.990600000000001, 'postal_code': '11201', 'region_name': 'NY'}
+    expected_result = {'area_code': 718, 'city': 'Brooklyn', 'country_code': 'US', 'country_code3': 'USA', 'country_name': 'United States', 'dma_code': 501, 'latitude': 40.694400000000002, 'longitude': -73.990600000000001, 'postal_code': '11201', 'region_code': 'NY'}
 
     assert(expected_result['country_name'] == location_dict['country_name'])
     assert(expected_result['city'] == location_dict['city'])
     assert(expected_result['area_code'] == location_dict['area_code'])
-    assert(expected_result['region_name'] == location_dict['region_name'])
+    assert(expected_result['region_code'] == location_dict['region_code'])
     assert(expected_result['postal_code'] == location_dict['postal_code'])
 
     # Test geoip_location_str method
@@ -149,13 +149,13 @@ def test_server(server_url):
   
     # Test geoip_record_by_name method by verifying location info of
     # 128.208.3.200 (cs.washington.edu)
-    expected_result = {'city': 'Seattle', 'region_name': 'WA', 'area_code': 206, 'longitude': -122.2919, 'country_code3': 'USA', 'country_name': 'United States', 'postal_code': '98105', 'dma_code': 819, 'country_code': 'US', 'latitude': 47.660599999999988}
+    expected_result = {'city': 'Seattle', 'region_code': 'WA', 'area_code': 206, 'longitude': -122.2919, 'country_code3': 'USA', 'country_name': 'United States', 'postal_code': '98105', 'dma_code': 819, 'country_code': 'US', 'latitude': 47.660599999999988}
     location_dict = geoip_record_by_addr('128.208.3.200')
     
     assert(expected_result['country_name'] == location_dict['country_name'])
     assert(expected_result['city'] == location_dict['city'])
     assert(expected_result['area_code'] == location_dict['area_code'])
-    assert(expected_result['region_name'] == location_dict['region_name'])
+    assert(expected_result['region_code'] == location_dict['region_code'])
     assert(expected_result['postal_code'] == location_dict['postal_code'])
 
 
