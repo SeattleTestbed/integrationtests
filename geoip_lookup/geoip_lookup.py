@@ -119,7 +119,9 @@ def test_server(server_url):
   """
   <Purpose>
     Given an url, try to do GeoIP lookup to ensure that the server
-    is running properly and giving accurate results.
+    is running properly and giving the results we expect.
+    This is determined by comparing current received results against 
+    the "known" results returned by geoip_server when it's working.
 
   <Argument>
     server_url - the url of the geoip server.
@@ -134,33 +136,34 @@ def test_server(server_url):
   geoip_init_client([server_url])
 
   try:
-    # Test geoip_record_by_name method by verifying location info of google.com
-    location_dict = geoip_record_by_name('poly.edu')
-    expected_result = {'area_code': 718, 'city': 'Brooklyn', 'country_code': 'US', 'country_code3': 'USA', 'country_name': 'United States', 'dma_code': 501, 'latitude': 40.694400000000002, 'longitude': -73.990600000000001, 'postal_code': '11201', 'region_name': 'NY'}
+    geoip_data = {}
 
-    assert(expected_result['country_name'] == location_dict['country_name'])
-    assert(expected_result['city'] == location_dict['city'])
-    assert(expected_result['area_code'] == location_dict['area_code'])
-    assert(expected_result['region_name'] == location_dict['region_name'])
-    assert(expected_result['postal_code'] == location_dict['postal_code'])
+    geoip_data["research.poly.edu"] = {
+        "received": geoip_record_by_name('research.poly.edu', timeout=10), 
+        "expected": {'area_code': 718, 'city': 'Brooklyn', 
+             'country_code': 'US', 'country_code3': 'USA', 
+             'country_name': 'United States', 'dma_code': 501, 
+             'latitude': 40.694400000000002, 'longitude': -73.990600000000001, 
+             'postal_code': '11201', 'region_code': 'NY'},
+        }
 
-    # Test geoip_location_str method
-    assert(geoip_location_str(location_dict) == "Brooklyn, NY, United States")
-  
-    # Test geoip_record_by_name method by verifying location info of
-    # 128.208.3.200 (cs.washington.edu)
-    expected_result = {'city': 'Seattle', 'region_name': 'WA', 'area_code': 206, 'longitude': -122.2919, 'country_code3': 'USA', 'country_name': 'United States', 'postal_code': '98105', 'dma_code': 819, 'country_code': 'US', 'latitude': 47.660599999999988}
-    location_dict = geoip_record_by_addr('128.208.3.200')
-    
-    assert(expected_result['country_name'] == location_dict['country_name'])
-    assert(expected_result['city'] == location_dict['city'])
-    assert(expected_result['area_code'] == location_dict['area_code'])
-    assert(expected_result['region_name'] == location_dict['region_name'])
-    assert(expected_result['postal_code'] == location_dict['postal_code'])
+    geoip_data["128.208.3.200"] = {
+        "received": geoip_record_by_addr('128.208.3.200', timeout=10), 
+        "expected": {'city': 'Seattle', 'region_code': 'WA', 
+            'area_code': 206, 'longitude': -122.2919, 
+            'country_code3': 'USA', 'country_name': 'United States', 
+            'postal_code': '98105', 'dma_code': 819, 'country_code': 'US', 
+            'latitude': 47.660599999999988},
+        }
 
 
-    # Test geoip_location_str method
-    assert(geoip_location_str(location_dict) == "Seattle, WA, United States")
+    for address, results in geoip_data.items():
+      for key in ['country_name', 'city', 'area_code', 'region_code', 'postal_code']:
+        expected = results["expected"][key]
+        received = results["received"][key] 
+        assert expected == received, ("When resolving address '" + address + 
+            "', expected '" + expected + "' but received '" + received + 
+            "' for key '" + key + "'")
 
     return (True, None, None)
   except AssertionError, err:
@@ -172,4 +175,5 @@ def test_server(server_url):
 
 if __name__ == '__main__':
   main()
+
 
