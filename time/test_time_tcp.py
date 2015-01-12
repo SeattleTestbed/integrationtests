@@ -18,12 +18,14 @@ import integrationtestlib
 import traceback
 import time
 import math
+import nonportable
 
-# use repy helper to bring in tcp_time.repy
-import repyhelper
+from repyportability import *
+add_dy_support(locals())
 
-repyhelper.translate_and_import('tcp_time.repy')
-repyhelper.translate_and_import('ntp_time.repy')
+dy_import_module_symbols('tcp_time.r2py')
+dy_import_module_symbols('ntp_time.r2py')
+time = dy_import_module("time_interface.r2py")
 
 def main():
   # initialize the gmail module
@@ -51,7 +53,7 @@ def main():
   for i in range (5):
     try:
       connected_server = tcp_time_updatetime(12345)
-      current_time = time_gettime()
+      current_time = time.time_gettime()
       times.append(current_time)
       server_list.append(connected_server)
       integrationtestlib.log("Calling time_gettime(). Retrieved time: " + str(current_time))
@@ -90,7 +92,7 @@ def main():
   # Now do an ntp time test
   try:
     ntp_time_updatetime(12345)
-    ntp_t = time_gettime()
+    ntp_t = time.time_gettime()
   except Exception,e:
     integrationtestlib.log("Failed to call ntp_time_updatetime(). Returned with exception: " +str(e))
     notify_str += "\nFailed to call ntp_time_updatetime(). Returned with exception: " +str(e)
