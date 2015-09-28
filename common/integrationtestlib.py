@@ -29,9 +29,6 @@ import sys
 notify_list = [
   "jcappos@poly.edu",
   "albert.rafetseder@univie.ac.at",
-  "monzum@u.washington.edu",
-  "leon.wlaw@gmail.com",
-  "hermanchchen@gmail.com",
 ]
 
 
