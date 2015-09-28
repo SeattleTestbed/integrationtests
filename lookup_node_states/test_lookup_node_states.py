@@ -16,34 +16,57 @@
   monzum@cs.washington.edu
 """
 
+# We'll search for nodestate keys in this directory
+keys_dir = "/home/integrationtester/cron_tests/lookup_node_states/"
+
+# Notification levels.
+# We don't want to have too many nodes in transient states (as that means 
+# the clearinghouse hasn't been able to contact them and set them up).
+max_acceptdonation_nodes = 50 
+max_canonical_nodes = 50 
+max_movingtotwopercent = 20
+
+# For correctly set up nodes, we warn about too low numbers.
+min_twopercent_nodes = 300 
+
+
 import integrationtestlib
 import send_gmail
 
-import repyhelper
-repyhelper.translate_and_import('rsa.repy')
-repyhelper.translate_and_import('advertise.repy')
+from repyportability import *
+add_dy_support(locals())
+rsa = dy_import_module('rsa.r2py')
+advertise = dy_import_module('advertise.r2py')
 
-#get all public keys for different states from file
-twopercentpublickey = rsa_file_to_publickey("/home/integrationtester/cron_tests/lookup_node_states/twopercent.publickey")
-canonicalpublickey = rsa_file_to_publickey("/home/integrationtester/cron_tests/lookup_node_states/canonical.publickey")
-acceptdonationpublickey = rsa_file_to_publickey("/home/integrationtester/cron_tests/lookup_node_states/acceptdonation.publickey")
-movingtotwopercentpublickey = rsa_file_to_publickey("/home/integrationtester/cron_tests/lookup_node_states/movingto_twopercent.publickey")
 
-important_node_states = [('twopercent', twopercentpublickey), ('canonical', canonicalpublickey), ('acceptdonation', acceptdonationpublickey), ('movingto_twopercent', movingtotwopercentpublickey)] 
+# Get all public keys for different states from file
+twopercentpublickey = rsa.rsa_file_to_publickey(keys_dir + "twopercent.publickey")
+canonicalpublickey = rsa.rsa_file_to_publickey(keys_dir + "canonical.publickey")
+acceptdonationpublickey = rsa.rsa_file_to_publickey(keys_dir + "acceptdonation.publickey")
+movingtotwopercentpublickey = rsa.rsa_file_to_publickey(keys_dir + "movingto_twopercent.publickey")
 
-#exception raised if AdvertiseLookup fails somehow
+important_node_states = [('twopercent', twopercentpublickey), 
+    ('canonical', canonicalpublickey), 
+    ('acceptdonation', acceptdonationpublickey), 
+    ('movingto_twopercent', movingtotwopercentpublickey),
+    ] 
+
+
+
+# Exception raised if AdvertiseLookup fails somehow
 class AdvertiseLookup(Exception):
   pass
 
 
-def check_nodes(server_lookup_type):
+
+def check_nodes():
   """
   <Purpse>
-    Check for nodes that are in the central server and find the nodes in differen
-    states.
+    Check for nodes advertising on the advertise services, and 
+    find nodes in different states.
 
   <Arguments>
-    server_lookup_type - either central or opendht
+    None.
 
   <Exception>
     AdvertiseLookup - raised if advertise_lookup gives an error.
@@ -54,28 +77,28 @@ def check_nodes(server_lookup_type):
   <Return>
     None 
   """
-  #counter used to count the total number of nodes
   total_nodes = 0
   node_result = {}
-  integrationtestlib.log("Starting advertise_lookup() using only "+server_lookup_type+" lookup type")
+  integrationtestlib.log("Starting advertise_lookup()")
 
-  print server_lookup_type 
-  #go through all the possible node states and do an advertise lookup
+  # Go through all the possible node states and do an advertise lookup
   for node_state_name, node_state_pubkey in important_node_states:
-    integrationtestlib.log("Printing "+node_state_name+" nodes:")
+    integrationtestlib.log("Printing " + node_state_name + " nodes:")
 
-    #retrieve node list from advertise_lookup(
+    # Retrieve node list from advertise services
     try:
-      node_list = advertise_lookup(node_state_pubkey, maxvals = 10*1024*1024, lookuptype=[server_lookup_type])
-    except:
-      raise AdvertiseLookup("advertise_lookup() failed when looking up key: "+ rsa_publickey_to_string(node_state_pubkey) + " for "+server_lookup_type)
+      node_list = advertise.advertise_lookup(node_state_pubkey, maxvals = 10*1024*1024)
+    except Exception, e:
+      raise AdvertiseLookup("advertise_lookup() failed with " + 
+          repr(e) + " when looking up key " + 
+          rsa.rsa_publickey_to_string(node_state_pubkey))
 
-    #keep track of total nodes
-    total_nodes+=len(node_list)
+    # Keep track of total nodes
+    total_nodes += len(node_list)
     
     node_result[node_state_name] = len(node_list)
 
-    #logg all the node lookup info
+    # Log all the node lookup info
     for node in node_list:
       print node
 
@@ -88,20 +111,19 @@ def check_nodes(server_lookup_type):
 def main():
   """
   <Purpose>
-    Call check_nodes with the two different servers: opendht and central. Retrieve the result 
-    and then notify developers if result is unusual
+    Call check_nodes and then notify developers if result is unusual.
 
   <Exceptions>
     None
 
   <Side Effects>
-    May send out an email or notify on irc.
+    May send out a notification email.
 
   <Return>
     None
   """
-  #setup the gmail for sending notification
-  success,explanation_str = send_gmail.init_gmail()
+  # Setup the gmail lib for sending notification
+  success, explanation_str = send_gmail.init_gmail()
 
   if not success:
     integrationtestlib.log(explanation_str)
@@ -109,30 +131,24 @@ def main():
 
   notification_subject = "test_lookup_node_states() failed"
 
-  max_acceptdonation_nodes = 50 
-  max_canonical_nodes = 50 
-  max_movingtotwopercent = 20
-  min_twopercent_nodes = 300 
+  results = check_nodes()
+  integrationtestlib.log("Lookup results: "+ str(results))
 
-  central_results = check_nodes('central')
-  integrationtestlib.log("Lookup results for central: "+ str(central_results))
+  # Check to see if any of the results is not normal, and 
+  # send notifications accordingly.
+  message = "Too many nodes in state " 
+  if results['acceptdonation'] > max_acceptdonation_nodes:
+    message += "acceptdonation: " +  str(results['acceptdonation'])
+  elif results['canonical'] > max_canonical_nodes:
+    message += "canonical: " + str(results['canonical'])
 
-  #check to see if any of the results is not normal, and send notifications accordingly
-  #also send a message to irc.  
-  if central_results['acceptdonation'] > max_acceptdonation_nodes:
-    message="Too many nodes in acceptdonation state: "+str(central_results['acceptdonation'])+"\nResults from 'central' server:\n"+str(central_results)
-    print message
-    integrationtestlib.notify(message, notification_subject)
+  if results['twopercent'] < min_twopercent_nodes:
+    message = "Too few nodes in state twopercent: " + str(results['twopercent'])
 
-  elif central_results['canonical'] > max_canonical_nodes:
-    message="Too many nodes in canonical state: "+str(central_results['canonical'])+"\nResults from 'central' server:\n"+str(central_results)
-    print message
-    integrationtestlib.notify(message, notification_subject)
+  message += "\nLookup results:\n" + str(results)
+  print message
+  integrationtestlib.notify(message, notification_subject)
 
-  elif central_results['twopercent'] < min_twopercent_nodes:
-    message="Too few nodes in twopercent state: "+str(central_results['twopercent'])+"\nResults from 'central' server:\n"+str(central_results)
-    print message
-    integrationtestlib.notify(message, notification_subject)
 
 
 if __name__ == "__main__":
