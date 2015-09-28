@@ -1,0 +1,16 @@
+./common/*
+./custominstallerbuilder/*
+./geoip_lookup/*
+./geoip_response/*
+./lookup_node_states/*
+./monitor_scripts/*
+./seattleclearinghouse/*
+./time/*
+./zenodotus/*
+
+DEPENDENCIES/repy_v2/*
+DEPENDENCIES/portability/*
+DEPENDENCIES/seattlelib_v2/*
+DEPENDENCIES/common/*
+DEPENDENCIES/nodemanager/servicelogger.py
+
