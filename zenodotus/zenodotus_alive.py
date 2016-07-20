@@ -11,12 +11,16 @@ import integrationtestlib
 import send_gmail
 import os
 import sys
-import repyhelper
 
-repyhelper.translate_and_import('advertise.repy')
-repyhelper.translate_and_import('random.repy')
-repyhelper.translate_and_import('rsa.repy')
-repyhelper.translate_and_import('sha.repy')
+# this is being done so that the resources accounting doesn't interfere with logging
+from repyportability import *
+_context = locals()
+add_dy_support(_context)
+
+advertise = dy_import_module("advertise.r2py")
+random = dy_import_module("random.r2py")
+rsa = dy_import_module('rsa.r2py')
+sha = dy_import_module('sha.r2py')
 
 
 zenodotus_servername = "zenodotus.poly.edu"
@@ -36,7 +40,7 @@ def _dns_mapping_exists(name, ip_address):
 def _generate_random_ip_address():
   octets = []
   for octet in xrange(4):
-    octets.append(str(random_int_below(256)))
+    octets.append(str(random.random_int_below(256)))
   return '.'.join(octets)
 
 
@@ -64,20 +68,19 @@ def main():
     # not have to actually exist (but should still be valid).
     random_ip_address = _generate_random_ip_address()
 
-    random_publickey = rsa_gen_pubpriv_keys(1024)[0]
-    random_publickey_string = rsa_publickey_to_string(random_publickey)
-    random_subdomain = "test-" + sha_hexhash(random_publickey_string)
+    random_publickey = rsa.rsa_gen_pubpriv_keys(1024)[0]
+    random_publickey_string = rsa.rsa_publickey_to_string(random_publickey)
+    random_subdomain = "test-" + sha.sha_hexhash(random_publickey_string)
     random_dns_entry = random_subdomain + '.' + zenodotus_servername
 
     print "Announcing", random_dns_entry, random_ip_address
-    advertise_announce(random_dns_entry, random_ip_address, 60)
+    advertise.advertise_announce(random_dns_entry, random_ip_address, 60)
 
     if not _dns_mapping_exists(random_dns_entry, random_ip_address):
       print "Zenodotus failed to respond properly to advertised subdomain!"
       # Query is invalid!
       success = False
       integrationtestlib.notify("Error: Zenodotus has failed to correctly respond to an advertised subdomain; there might be something wrong with the advertise server. This report will be re-sent hourly while the problem persists.", "Cron: Zenodotus failure")
-
 
 
   except Exception, e:
